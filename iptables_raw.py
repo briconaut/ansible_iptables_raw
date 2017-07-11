@@ -92,6 +92,18 @@ options:
     choices: ["0 - 99"]
     required: false
     default: 40
+  dest:
+    description:
+      - The location of the iptables rules file.
+      _ "Note: Without this parameter a distribution dependent choice will
+        be made (see notes below)."
+    required: false
+  statefile:
+    description:
+      - The location of the iptables statefile for internal use by this module.
+      _ "Note: Without this parameter a distribution dependent choice will
+        be made (see notes below)."
+    required: false
 notes:
   - Requires C(iptables) package. Debian-based distributions additionally
     require C(iptables-persistent).
@@ -292,8 +304,8 @@ class Iptables:
             os.makedirs(self.STATE_DIR)
         if Iptables.module is None:
             Iptables.module = module
-        self.state_save_path = self._get_state_save_path(ipversion)
-        self.system_save_path = self._get_system_save_path(ipversion)
+        self.state_save_path = module.params['statefile'] or self._get_state_save_path(ipversion)
+        self.system_save_path = module.params['dest'] or self._get_system_save_path(ipversion)
         self.state_dict = self._read_state_file()
         self.bins = self._get_bins(ipversion)
         self.iptables_names_file = self._get_iptables_names_file(ipversion)
@@ -915,6 +927,8 @@ def main():
             rules=dict(required=False, type='str', default=""),
             backup=dict(required=False, type='bool', default=False),
             keep_unmanaged=dict(required=False, type='bool', default=True),
+            statefile=dict(required=False, type='str', default=None),
+            dest=dict(required=False, type='str', default=None),
         ),
         supports_check_mode=True,
     )
@@ -929,9 +943,12 @@ def main():
     rules = module.params['rules']
     backup = module.params['backup']
     keep_unmanaged = module.params['keep_unmanaged']
+    statefile = module.params['statefile']
+    dest = module.params['dest']
 
     kw = dict(state=state, name=name, rules=rules, weight=weight, ipversion=ipversion,
-              table=table, backup=backup, keep_unmanaged=keep_unmanaged)
+              table=table, backup=backup, keep_unmanaged=keep_unmanaged,
+              statefile=statefile, dest=dest)
 
     iptables = Iptables(module, ipversion)
 
